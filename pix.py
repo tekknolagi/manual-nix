@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
 import argparse
+import base64
 import json
+import hashlib
 import re
 import shlex
 import subprocess
 import sys
+import tempfile
 import textwrap
 
 
@@ -52,15 +55,43 @@ def deriv_add(deriv, check=True):
     )
 
 
-def discover_output(deriv):
-    # TODO(max): Figure out a better way to do this programmatically
-    result = deriv_add(deriv, check=False)
-    match = re.search(r"should be '(.+)'", result.stderr)
-    assert match
-    expected_out_path = match.group(1)
-    deriv["outputs"]["out"]["path"] = expected_out_path
-    deriv["env"]["out"] = expected_out_path
-    return result.stderr
+STORE_DIR = "/nix/store"
+
+
+def discover_output(deriv, output):
+    # Convert to ATerm
+    initial_deriv = deriv_add(deriv).stdout.rstrip()
+    with open(initial_deriv, "rb") as f:
+        initial_deriv_hash = hashlib.file_digest(f, "sha256").digest()
+    initial_deriv_hash_base32 = (
+        base64.b16encode(initial_deriv_hash).decode("utf-8").lower()
+    )
+    name = deriv["name"]
+    fingerprint = (
+        f"output:{output}:sha256:{initial_deriv_hash_base32}:{STORE_DIR}:{name}"
+    )
+    with tempfile.NamedTemporaryFile(mode="w+") as f:
+        f.write(fingerprint)
+        f.flush()
+        result = run(
+            [
+                "nix-hash",
+                "--type",
+                "sha256",
+                "--truncate",
+                "--base32",
+                "--flat",
+                f.name,
+            ],
+            capture_output=True,
+        )
+    # TODO(max): Figure out why hashlib gives a different answer from nix-hash
+    # fingerprint_hash = hashlib.sha256(fingerprint.encode("utf-8")).digest()
+    # fingerprint_hash_base32 = base64.b16encode(fingerprint_hash[:20]).decode('utf-8')
+    fingerprint_digest = result.stdout.rstrip()
+    store_path = f"{STORE_DIR}/{fingerprint_digest}-{name}"
+    deriv["outputs"][output]["path"] = store_path
+    deriv["env"][output] = store_path
 
 
 def deriv_realize(deriv_path):
@@ -70,23 +101,23 @@ def deriv_realize(deriv_path):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     args = parser.parse_args()
+    output = "out"
     deriv = {
         "name": "simple",
         "system": "x86_64-linux",
         "builder": "/bin/sh",
-        "outputs": {
-            "out": {"path": "/nix/store/00000000000000000000000000000000-simple"}
-        },
+        "outputs": {output: {}},
         "inputSrcs": [],
         "inputDrvs": {},
         "env": {
-            "out": "/nix/store/00000000000000000000000000000000-simple",
+            "out": "",
         },
         "args": ["-c", "echo 'hello world' > $out"],
     }
-    discover_output(deriv)
+
+    discover_output(deriv, output)
     deriv_path = deriv_add(deriv).stdout.rstrip()
     output = deriv_realize(deriv_path).stdout.rstrip()
-    print(f"{output}:")
+    print(f"Contents of output {output}:")
     with open(output, "r") as f:
         print(f.read())
