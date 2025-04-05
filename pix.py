@@ -57,9 +57,16 @@ def deriv_add(deriv, check=True):
 
 def to_nix_base32(bytes_data):
     b32_alphabet = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
-    b32_nix      = b"0123456789abcdfghijklmnpqrsvwxyz"
+    b32_nix = b"0123456789abcdfghijklmnpqrsvwxyz"
     trans = bytes.maketrans(b32_alphabet, b32_nix)
     return base64.b32encode(bytes_data[::-1]).translate(trans).decode("utf-8")
+
+
+def compress_hash(h, newlen):
+    result = bytearray(b"\0" * newlen)
+    for i in range(len(h)):
+        result[i % newlen] ^= h[i]
+    return bytes(result[:newlen])
 
 
 STORE_DIR = "/nix/store"
@@ -78,7 +85,7 @@ def discover_output(deriv, output):
         f"output:{output}:sha256:{initial_deriv_hash_base16}:{STORE_DIR}:{name}"
     )
     fingerprint_hash = hashlib.sha256(fingerprint.encode("utf-8")).digest()
-    fingerprint_hash_base32 = to_nix_base32(fingerprint_hash[:20])
+    fingerprint_digest = to_nix_base32(compress_hash(fingerprint_hash, 20))
     with tempfile.NamedTemporaryFile(mode="w+") as f:
         f.write(fingerprint)
         f.flush()
@@ -94,11 +101,11 @@ def discover_output(deriv, output):
             ],
             capture_output=True,
         )
-    fingerprint_digest = result.stdout.rstrip()
+    nix_fingerprint_digest = result.stdout.rstrip()
     # TODO(max): Figure out why hashlib gives a different answer from nix-hash
-    # assert (
-    #     fingerprint_digest == fingerprint_hash_base32
-    # ), f"{fingerprint_digest} != {fingerprint_hash_base32}"
+    assert (
+        fingerprint_digest == nix_fingerprint_digest
+    ), f"{fingerprint_digest} != {nix_fingerprint_digest}"
     store_path = f"{STORE_DIR}/{fingerprint_digest}-{name}"
     deriv["outputs"][output]["path"] = store_path
     deriv["env"][output] = store_path
