@@ -2,8 +2,9 @@
 
 import argparse
 import base64
-import json
 import hashlib
+import json
+import pathlib
 import re
 import shlex
 import subprocess
@@ -36,21 +37,27 @@ def run(
             subsequent_indent="  ",
         )
         print(" \\\n".join(lines))
-    return subprocess.run(
-        cmd,
-        cwd=cwd,
-        check=check,
-        capture_output=capture_output,
-        encoding=encoding,
-        **kwargs,
-    )
+    try:
+        return subprocess.run(
+            cmd,
+            cwd=cwd,
+            check=check,
+            capture_output=capture_output,
+            encoding=encoding,
+            **kwargs,
+        )
+    except subprocess.CalledProcessError as e:
+        print(e)
+        print(e.stdout)
+        print(e.stderr)
+        raise
 
 
-def deriv_add(deriv, check=True):
+def deriv_add(deriv):
     return run(
         ["nix", "--extra-experimental-features", "nix-command", "derivation", "add"],
         input=json.dumps(deriv),
-        check=check,
+        check=True,
         capture_output=True,
     )
 
@@ -118,24 +125,71 @@ def deriv_realize(deriv_path):
     return run(["nix-store", "--realize", deriv_path], capture_output=True)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    args = parser.parse_args()
+def source_file(filename):
+    return run(["nix", "--extra-experimental-features", "nix-command", "store", "add-file", filename], capture_output=True)
+#    output = "out"
+#    deriv = {
+#        "name": "simple",
+#        "system": "x86_64-linux",
+#        "builder": "/nix/store/b1wvkjx96i3s7wblz38ya0zr8i93zbc5-coreutils-9.5/bin/cp",
+#        "outputs": {output: {}},
+#        "inputSrcs": [str(pathlib.Path(filename).absolute())],
+#        "inputDrvs": {},
+#        "env": {
+#            "out": "",
+#        },
+#        "args": [f"{filename} $out"],
+#    }
+#    discover_output(deriv, output)
+#    deriv_path = deriv_add(deriv).stdout.rstrip()
+#    output_path = deriv_realize(deriv_path).stdout.rstrip()
+#    return output_path
+
+
+def cc(filename):
     output = "out"
     deriv = {
         "name": "simple",
         "system": "x86_64-linux",
         "builder": "/bin/sh",
         "outputs": {output: {}},
-        "inputSrcs": [],
+        "inputSrcs": [filename],
         "inputDrvs": {},
         "env": {
             "out": "",
         },
-        "args": ["-c", "echo 'hello world' > $out"],
+        "args": ["-c", f'/nix/store/b1wvkjx96i3s7wblz38ya0zr8i93zbc5-coreutils-9.5/bin/mkdir -p $out/bin; /nix/store/kz9s0ixfii59lxzi0kzfxy1brisbvy1h-tcc-0.9.27-unstable-2025-01-06/bin/tcc {filename} -o $out/bin/hello'],
     }
-
     discover_output(deriv, output)
+    compiled_output = deriv["outputs"]["out"]["path"]
     deriv_path = deriv_add(deriv).stdout.rstrip()
     output_path = deriv_realize(deriv_path).stdout.rstrip()
+    return output_path
+
+
+
+if __name__ == "__main__":
+    output_path = source_file("test.c").stdout.rstrip()
     print(output_path)
+    compiled = cc(output_path)
+    print(compiled)
+    # parser = argparse.ArgumentParser()
+    # args = parser.parse_args()
+    # output = "out"
+    # deriv = {
+    #     "name": "simple",
+    #     "system": "x86_64-linux",
+    #     "builder": "/bin/sh",
+    #     "outputs": {output: {}},
+    #     "inputSrcs": [],
+    #     "inputDrvs": {},
+    #     "env": {
+    #         "out": "",
+    #     },
+    #     "args": ["-c", "echo 'hello world' > $out"],
+    # }
+
+    # discover_output(deriv, output)
+    # deriv_path = deriv_add(deriv).stdout.rstrip()
+    # output_path = deriv_realize(deriv_path).stdout.rstrip()
+    # print(output_path)
