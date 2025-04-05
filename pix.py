@@ -153,7 +153,7 @@ def cc(filename):
         },
         "args": [
             "-c",
-            f"/nix/store/b1wvkjx96i3s7wblz38ya0zr8i93zbc5-coreutils-9.5/bin/mkdir -p $out/bin; /nix/store/kz9s0ixfii59lxzi0kzfxy1brisbvy1h-tcc-0.9.27-unstable-2025-01-06/bin/tcc {filename} -o $out/bin/hello",
+            f"/nix/store/b1wvkjx96i3s7wblz38ya0zr8i93zbc5-coreutils-9.5/bin/mkdir -p $out/bin; /nix/store/m93xabjzcpx17qjj67qxpa68ykxfx75k-tcc-0.9.27-unstable-2025-01-06/bin/tcc {filename} -o $out/bin/hello",
         ],
     }
     discover_output(deriv, output)
