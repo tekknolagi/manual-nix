@@ -63,12 +63,12 @@ def discover_output(deriv, output):
     initial_deriv = deriv_add(deriv).stdout.rstrip()
     with open(initial_deriv, "rb") as f:
         initial_deriv_hash = hashlib.file_digest(f, "sha256").digest()
-    initial_deriv_hash_base32 = (
+    initial_deriv_hash_base16 = (
         base64.b16encode(initial_deriv_hash).decode("utf-8").lower()
     )
     name = deriv["name"]
     fingerprint = (
-        f"output:{output}:sha256:{initial_deriv_hash_base32}:{STORE_DIR}:{name}"
+        f"output:{output}:sha256:{initial_deriv_hash_base16}:{STORE_DIR}:{name}"
     )
     with tempfile.NamedTemporaryFile(mode="w+") as f:
         f.write(fingerprint)
