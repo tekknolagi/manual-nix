@@ -87,7 +87,7 @@ def discover_output(deriv, output):
         )
     # TODO(max): Figure out why hashlib gives a different answer from nix-hash
     # fingerprint_hash = hashlib.sha256(fingerprint.encode("utf-8")).digest()
-    # fingerprint_hash_base32 = base64.b16encode(fingerprint_hash[:20]).decode('utf-8')
+    # fingerprint_hash_base32 = base64.b32encode(fingerprint_hash[:20]).decode("utf-8")
     fingerprint_digest = result.stdout.rstrip()
     store_path = f"{STORE_DIR}/{fingerprint_digest}-{name}"
     deriv["outputs"][output]["path"] = store_path
