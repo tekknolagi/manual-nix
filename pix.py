@@ -127,23 +127,6 @@ def deriv_realize(deriv_path):
 
 def source_file(filename):
     return run(["nix", "--extra-experimental-features", "nix-command", "store", "add-file", filename], capture_output=True)
-#    output = "out"
-#    deriv = {
-#        "name": "simple",
-#        "system": "x86_64-linux",
-#        "builder": "/nix/store/b1wvkjx96i3s7wblz38ya0zr8i93zbc5-coreutils-9.5/bin/cp",
-#        "outputs": {output: {}},
-#        "inputSrcs": [str(pathlib.Path(filename).absolute())],
-#        "inputDrvs": {},
-#        "env": {
-#            "out": "",
-#        },
-#        "args": [f"{filename} $out"],
-#    }
-#    discover_output(deriv, output)
-#    deriv_path = deriv_add(deriv).stdout.rstrip()
-#    output_path = deriv_realize(deriv_path).stdout.rstrip()
-#    return output_path
 
 
 def cc(filename):
