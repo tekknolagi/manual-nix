@@ -118,7 +118,4 @@ if __name__ == "__main__":
 
     discover_output(deriv, output)
     deriv_path = deriv_add(deriv).stdout.rstrip()
-    output = deriv_realize(deriv_path).stdout.rstrip()
-    print(f"Contents of output {output}:")
-    with open(output, "r") as f:
-        print(f.read())
+    deriv_realize(deriv_path)
