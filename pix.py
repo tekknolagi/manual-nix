@@ -157,7 +157,6 @@ def cc(filename):
         ],
     }
     discover_output(deriv, output)
-    compiled_output = deriv["outputs"]["out"]["path"]
     deriv_path = deriv_add(deriv).stdout.rstrip()
     output_path = deriv_realize(deriv_path).stdout.rstrip()
     return output_path
