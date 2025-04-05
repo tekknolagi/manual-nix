@@ -70,6 +70,8 @@ def discover_output(deriv, output):
     fingerprint = (
         f"output:{output}:sha256:{initial_deriv_hash_base16}:{STORE_DIR}:{name}"
     )
+    fingerprint_hash = hashlib.sha256(fingerprint.encode("utf-8")).digest()
+    fingerprint_hash_base32 = base64.b32encode(fingerprint_hash[:20]).decode("utf-8").lower()
     with tempfile.NamedTemporaryFile(mode="w+") as f:
         f.write(fingerprint)
         f.flush()
@@ -85,10 +87,9 @@ def discover_output(deriv, output):
             ],
             capture_output=True,
         )
-    # TODO(max): Figure out why hashlib gives a different answer from nix-hash
-    # fingerprint_hash = hashlib.sha256(fingerprint.encode("utf-8")).digest()
-    # fingerprint_hash_base32 = base64.b32encode(fingerprint_hash[:20]).decode("utf-8")
     fingerprint_digest = result.stdout.rstrip()
+    # TODO(max): Figure out why hashlib gives a different answer from nix-hash
+    # assert fingerprint_digest == fingerprint_hash_base32, f"{fingerprint_digest} != {fingerprint_hash_base32}"
     store_path = f"{STORE_DIR}/{fingerprint_digest}-{name}"
     deriv["outputs"][output]["path"] = store_path
     deriv["env"][output] = store_path
