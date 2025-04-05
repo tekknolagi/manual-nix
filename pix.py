@@ -126,7 +126,17 @@ def deriv_realize(deriv_path):
 
 
 def source_file(filename):
-    return run(["nix", "--extra-experimental-features", "nix-command", "store", "add-file", filename], capture_output=True)
+    return run(
+        [
+            "nix",
+            "--extra-experimental-features",
+            "nix-command",
+            "store",
+            "add-file",
+            filename,
+        ],
+        capture_output=True,
+    )
 
 
 def cc(filename):
@@ -141,14 +151,16 @@ def cc(filename):
         "env": {
             "out": "",
         },
-        "args": ["-c", f'/nix/store/b1wvkjx96i3s7wblz38ya0zr8i93zbc5-coreutils-9.5/bin/mkdir -p $out/bin; /nix/store/kz9s0ixfii59lxzi0kzfxy1brisbvy1h-tcc-0.9.27-unstable-2025-01-06/bin/tcc {filename} -o $out/bin/hello'],
+        "args": [
+            "-c",
+            f"/nix/store/b1wvkjx96i3s7wblz38ya0zr8i93zbc5-coreutils-9.5/bin/mkdir -p $out/bin; /nix/store/kz9s0ixfii59lxzi0kzfxy1brisbvy1h-tcc-0.9.27-unstable-2025-01-06/bin/tcc {filename} -o $out/bin/hello",
+        ],
     }
     discover_output(deriv, output)
     compiled_output = deriv["outputs"]["out"]["path"]
     deriv_path = deriv_add(deriv).stdout.rstrip()
     output_path = deriv_realize(deriv_path).stdout.rstrip()
     return output_path
-
 
 
 if __name__ == "__main__":
