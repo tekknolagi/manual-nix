@@ -69,6 +69,25 @@ def compress_hash(h, newlen):
     return bytes(result[:newlen])
 
 
+def nix_digest(fingerprint):
+    # To make sure we have it right
+    with tempfile.NamedTemporaryFile(mode="w+") as f:
+        f.write(fingerprint)
+        f.flush()
+        return run(
+            [
+                "nix-hash",
+                "--type",
+                "sha256",
+                "--truncate",
+                "--base32",
+                "--flat",
+                f.name,
+            ],
+            capture_output=True,
+        ).stdout.rstrip()
+
+
 STORE_DIR = "/nix/store"
 
 
@@ -86,23 +105,7 @@ def discover_output(deriv, output):
     )
     fingerprint_hash = hashlib.sha256(fingerprint.encode("utf-8")).digest()
     fingerprint_digest = to_nix_base32(compress_hash(fingerprint_hash, 20))
-    with tempfile.NamedTemporaryFile(mode="w+") as f:
-        f.write(fingerprint)
-        f.flush()
-        result = run(
-            [
-                "nix-hash",
-                "--type",
-                "sha256",
-                "--truncate",
-                "--base32",
-                "--flat",
-                f.name,
-            ],
-            capture_output=True,
-        )
-    nix_fingerprint_digest = result.stdout.rstrip()
-    # TODO(max): Figure out why hashlib gives a different answer from nix-hash
+    nix_fingerprint_digest = nix_digest(fingerprint)
     assert (
         fingerprint_digest == nix_fingerprint_digest
     ), f"{fingerprint_digest} != {nix_fingerprint_digest}"
