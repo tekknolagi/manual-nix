@@ -137,4 +137,5 @@ if __name__ == "__main__":
 
     discover_output(deriv, output)
     deriv_path = deriv_add(deriv).stdout.rstrip()
-    deriv_realize(deriv_path)
+    output_path = deriv_realize(deriv_path).stdout.rstrip()
+    print(output_path)
